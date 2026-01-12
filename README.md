@@ -1,1 +1,1 @@
-Code to block out a persons face in avideo with a given image mask
+Code to block out a persons face in a video with a given image mask
