@@ -3,14 +3,17 @@ import mediapipe as mp
 import numpy as np
 import subprocess
 import os
+from pathlib import Path
+
 
 # ================= CONFIG =================
-INPUT_VIDEO = "test_vid.mp4"
-TEMP_VIDEO = "temp_output.mp4"
-FINAL_OUTPUT = "output_video2.mp4"
-MASK_IMG = "mask.png"
+BASE_DIR = Path(__file__).resolve().parent.parent
+INPUT_VIDEO = BASE_DIR / "videos" / "test_vid.mp4"
+TEMP_VIDEO = BASE_DIR / "outputs" / "temp_output.mp4"
+FINAL_OUTPUT = BASE_DIR / "outputs" / "output_video.mp4"
+MASK_IMG = BASE_DIR / "assets" / "mask.png"
 
-FFMPEG_PATH = r"C:\Users\Ben\Documents\ffmpeg-8.0.1-full_build\bin\ffmpeg.exe"
+FFMPEG_PATH = "ffmpeg" # r"C:\Users\Ben\Documents\ffmpeg-8.0.1-full_build\bin\ffmpeg.exe"
 
 MIN_CONFIDENCE = 0.7
 DETECT_EVERY_N = 5
@@ -19,7 +22,7 @@ MAX_MISSES = 15      # frames to tolerate before removing mask
 # =========================================
 
 # Load mask image (RGBA)
-mask_img = cv2.imread(MASK_IMG, cv2.IMREAD_UNCHANGED)
+mask_img = cv2.imread(str(MASK_IMG), cv2.IMREAD_UNCHANGED)
 
 # MediaPipe face detector
 mp_face = mp.solutions.face_detection
@@ -29,13 +32,18 @@ face_detection = mp_face.FaceDetection(
 )
 
 # Video I/O
-cap = cv2.VideoCapture(INPUT_VIDEO)
+cap = cv2.VideoCapture(str(INPUT_VIDEO))
 width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 fps = cap.get(cv2.CAP_PROP_FPS)
+if fps <= 0 or fps != fps:#so it doesnt silently fail on windows
+    fps = 30.0
 
 fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-out = cv2.VideoWriter(TEMP_VIDEO, fourcc, fps, (width, height))
+out = cv2.VideoWriter(str(TEMP_VIDEO), fourcc, fps, (width, height))
+
+if not out.isOpened():
+    raise RuntimeError("video writer failed to open")
 
 # Tracking state
 tracker = None
@@ -137,13 +145,13 @@ out.release()
 
 # ================= FFMPEG COMPRESSION =================
 ffmpeg_cmd = [
-    FFMPEG_PATH,
+    str(FFMPEG_PATH),
     "-y",
-    "-i", TEMP_VIDEO,
+    "-i", str(TEMP_VIDEO),
     "-c:v", "libx264",
     "-crf", "23",
     "-preset", "fast",
-    FINAL_OUTPUT
+    str(FINAL_OUTPUT)
 ]
 
 subprocess.run(ffmpeg_cmd)
